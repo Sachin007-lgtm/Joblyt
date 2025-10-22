@@ -24,23 +24,23 @@ const ReviewJdStep = ({
   return (
   <div className="space-y-8">
     <div className="text-center mb-8">
-      <h2 className="text-3xl font-bold text-gray-800 mb-4">Review & Categorize JD Skills</h2>
+      <h2 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-4">Review & Categorize JD Skills</h2>
       <p className="text-gray-600 text-lg">Categorize required skills and edit other JD fields if needed.</p>
     </div>
-    <div className="bg-white rounded-2xl p-8 shadow-lg border border-red-100">
+    <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-white/20">
       {/* Skill Categorization UI */}
       <div className="mb-6">
         <label className="block font-semibold mb-2 text-gray-700">Required Skills Categorization</label>
         <div className="flex flex-wrap gap-4 mb-4">
           {['critical', 'important', 'extra'].map(cat => (
             <div key={cat} className="flex-1 min-w-[180px]">
-              <div className={`font-semibold mb-2 capitalize ${cat === 'critical' ? 'text-red-700' : cat === 'important' ? 'text-yellow-700' : 'text-blue-700'}`}>{cat}</div>
+              <div className={`font-semibold mb-2 capitalize ${cat === 'critical' ? 'text-rose-700' : cat === 'important' ? 'text-amber-700' : 'text-indigo-700'}`}>{cat}</div>
         <div className="flex flex-wrap gap-2 mb-2">
                 {skillCategories[cat].map((skill, idx) => (
                   <span key={idx} className="inline-flex items-center bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
               {skill}
               <button
-                className="ml-2 text-red-500 hover:text-red-700"
+                className="ml-2 text-gray-600 hover:text-gray-800"
                       onClick={() => removeSkill(skill, cat)}
               >
                 <X className="w-4 h-4" />
@@ -49,7 +49,7 @@ const ReviewJdStep = ({
                       {['critical', 'important', 'extra'].filter(c => c !== cat).map(targetCat => (
                         <button
                           key={targetCat}
-                          className={`text-xs px-1 py-0.5 rounded ${targetCat === 'critical' ? 'bg-red-200 text-red-700' : targetCat === 'important' ? 'bg-yellow-200 text-yellow-700' : 'bg-blue-200 text-blue-700'}`}
+                          className={`text-xs px-1 py-0.5 rounded ${targetCat === 'critical' ? 'bg-rose-200 text-rose-700' : targetCat === 'important' ? 'bg-amber-200 text-amber-700' : 'bg-indigo-200 text-indigo-700'}`}
                           onClick={() => moveSkill(skill, cat, targetCat)}
                         >
                           {targetCat.charAt(0).toUpperCase()}
@@ -73,7 +73,7 @@ const ReviewJdStep = ({
             }}
           />
           <button
-            className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-3 py-1 rounded-lg hover:shadow-lg transition-all duration-200"
                   onClick={() => addSkill(newSkill, cat)}
           >
             <Plus className="w-4 h-4" />
@@ -166,7 +166,7 @@ const ReviewJdStep = ({
       <div className="flex justify-between items-center mb-2">
         <span className="font-semibold text-gray-700">JD Form Editor</span>
         <button
-          className="flex items-center px-3 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg shadow hover:from-red-600 hover:to-red-700 transition-colors duration-200"
+          className="flex items-center px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg shadow hover:shadow-lg transition-all duration-200"
           onClick={() => setShowJsonView(!showJsonView)}
         >
           {showJsonView ? <Edit3 className="w-4 h-4 mr-1" /> : <FileText className="w-4 h-4 mr-1" />}
@@ -183,7 +183,7 @@ const ReviewJdStep = ({
       <button
         onClick={extractResumes}
         disabled={processing || !hasCvFiles}
-        className="px-8 py-4 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
       >
         <FileText className="w-5 h-5 inline mr-2" />
         Extract Resumes
@@ -192,14 +192,14 @@ const ReviewJdStep = ({
         <button
           onClick={saveJd}
           disabled={processing}
-          className="px-8 py-4 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+          className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
         >
           Save JD
         </button>
       )}
       <button
         onClick={resetApp}
-        className="px-8 py-4 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+        className="px-8 py-4 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 transform hover:-translate-y-1"
       >
         Reset
       </button>

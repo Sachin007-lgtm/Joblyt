@@ -59,106 +59,141 @@ const UserManagementPage = () => {
     }
 
     return (
-        <div className="container mx-auto p-8">
-            <h1 className="text-3xl font-bold mb-6 text-gray-800">User Management</h1>
-            
-            <div className="mb-6">
-                <button
-                    onClick={() => setShowCreateForm(!showCreateForm)}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center"
-                >
-                    <Plus className="w-5 h-5 mr-2" />
-                    {showCreateForm ? 'Cancel' : 'Create New User'}
-                </button>
+        <div className="space-y-6">
+            {/* Header Section */}
+            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-white/20">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                                User Management
+                            </h1>
+                            <p className="text-gray-600 text-sm">Manage users and permissions</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setShowCreateForm(!showCreateForm)}
+                        className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center font-semibold"
+                    >
+                        <Plus className="w-5 h-5 mr-2" />
+                        {showCreateForm ? 'Cancel' : 'Create New User'}
+                    </button>
+                </div>
             </div>
 
             {showCreateForm && (
-                <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-                    <h2 className="text-xl font-semibold mb-4">Create New User</h2>
-                    <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Username</label>
-                            <input
-                                type="text"
-                                value={newUser.username}
-                                onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                                required
-                            />
+                <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-white/20 animate-fade-in">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6">Create New User</h2>
+                    <form onSubmit={handleCreateUser} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-gray-700">Username</label>
+                                <input
+                                    type="text"
+                                    value={newUser.username}
+                                    onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-gray-300"
+                                    placeholder="Enter username"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-gray-700">Email</label>
+                                <input
+                                    type="email"
+                                    value={newUser.email}
+                                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-gray-300"
+                                    placeholder="Enter email"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-gray-700">Password</label>
+                                <input
+                                    type="password"
+                                    value={newUser.password}
+                                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-gray-300"
+                                    placeholder="Enter password"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-gray-700">Role</label>
+                                <select
+                                    value={newUser.role}
+                                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-gray-300 bg-white font-medium"
+                                >
+                                    <option value="recruiter">Recruiter</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="backend_team">Backend Team</option>
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Email</label>
-                            <input
-                                type="email"
-                                value={newUser.email}
-                                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Password</label>
-                            <input
-                                type="password"
-                                value={newUser.password}
-                                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Role</label>
-                            <select
-                                value={newUser.role}
-                                onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                            >
-                                <option value="recruiter">Recruiter</option>
-                                <option value="admin">Admin</option>
-                                <option value="backend_team">Backend Team</option>
-                            </select>
-                        </div>
-                        <div className="md:col-span-2">
-                            <button
-                                type="submit"
-                                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                            >
-                                Create User
-                            </button>
-                        </div>
+                        <button
+                            type="submit"
+                            className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                        >
+                            Create User
+                        </button>
                     </form>
                 </div>
             )}
 
-            <div className="bg-white shadow-lg rounded-lg">
-                <ul className="divide-y divide-gray-200">
-                    {users.length > 0 ? users.map((u) => (
-                        <li key={u.id} className="p-6 hover:bg-gray-50 transition-colors">
-                            <div className="flex items-center justify-between">
-                                <div className="flex-grow">
-                                    <p className="text-xl font-semibold text-gray-900">{u.username}</p>
-                                    <p className="text-md text-gray-600">{u.email}</p>
-                                    <p className="text-sm text-gray-500 mt-1">Role: {u.role}</p>
-                                </div>
-                                <div className="text-right flex-shrink-0 ml-6">
-                                    <p className={`text-md font-medium ${u.is_active ? 'text-green-500' : 'text-red-500'}`}>
-                                        {u.is_active ? 'Active' : 'Inactive'}
-                                    </p>
-                                    <div className="mt-2">
-                                        <button
-                                            onClick={() => handleDeleteUser(u.id)}
-                                            className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center"
-                                        >
-                                            <Trash2 className="w-4 h-4 mr-1" /> Delete
-                                        </button>
+            {/* Users List */}
+            <div className="space-y-4">
+                {users.length > 0 ? users.map((u) => (
+                    <div key={u.id} className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-6 border border-white/20 hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+                        <div className="flex items-center justify-between">
+                            <div className="flex-grow space-y-2">
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                                        <span className="text-white font-bold text-lg">{u.username.charAt(0).toUpperCase()}</span>
                                     </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-gray-900">{u.username}</h3>
+                                        <p className="text-sm text-gray-600">{u.email}</p>
+                                    </div>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                        u.is_active 
+                                            ? 'bg-green-100 text-green-700 border border-green-300' 
+                                            : 'bg-red-100 text-red-700 border border-red-300'
+                                    }`}>
+                                        {u.is_active ? 'Active' : 'Inactive'}
+                                    </span>
+                                </div>
+                                <div className="ml-15 flex items-center space-x-2">
+                                    <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium">
+                                        {u.role}
+                                    </span>
                                 </div>
                             </div>
-                        </li>
-                    )) : (
-                        <li className="p-6 text-center text-gray-500">No users found.</li>
-                    )}
-                </ul>
+                            <div className="flex-shrink-0 ml-6">
+                                <button
+                                    onClick={() => handleDeleteUser(u.id)}
+                                    className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center font-semibold"
+                                >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )) : (
+                    <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-12 border border-white/20 text-center">
+                        <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <p className="text-gray-500 text-lg">No users found</p>
+                    </div>
+                )}
             </div>
         </div>
     );

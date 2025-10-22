@@ -4,8 +4,8 @@ import { Upload, FileText, Brain, BarChart3, CheckCircle, Edit3, ArrowLeft } fro
 const Stepper = ({ step, onBack }) => (
   <div className="mb-12 flex items-center justify-between">
     {step > 1 ? (
-      <button onClick={onBack} className="p-2 rounded-full bg-gray-200 hover:bg-gray-300">
-        <ArrowLeft className="w-6 h-6" />
+      <button onClick={onBack} className="p-2 rounded-xl bg-white/80 backdrop-blur-lg shadow-lg border border-white/20 hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5">
+        <ArrowLeft className="w-6 h-6 text-indigo-600" />
       </button>
     ) : (
       <div className="w-10 h-10" /> // Placeholder to keep alignment
@@ -22,7 +22,7 @@ const Stepper = ({ step, onBack }) => (
         <div key={num} className="flex items-center space-x-3">
           <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
             step >= num
-              ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg scale-110' 
+              ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg scale-110' 
               : 'bg-gray-200 text-gray-500'
           }`}>
             {step > num ? <CheckCircle className="w-6 h-6" /> : <Icon className="w-6 h-6" />}
