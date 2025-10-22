@@ -1,3 +1,8 @@
+from dotenv import load_dotenv
+
+# Load environment variables FIRST before any other imports
+load_dotenv()
+
 from fastapi import FastAPI, UploadFile, File, Form, Body, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware

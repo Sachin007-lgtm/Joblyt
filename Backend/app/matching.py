@@ -1,4 +1,4 @@
-from sentence_transformers import util
+import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from datetime import datetime
 import re
@@ -9,6 +9,7 @@ import nltk
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 from dotenv import load_dotenv
+import httpx
 
 from .schemas import JDModel, CVModel, Experience, Education, LocationModel, Skill, Qualifications
 
@@ -29,17 +30,84 @@ IMPORTANT_SKILLS_WEIGHT = float(os.getenv('IMPORTANT_SKILLS_WEIGHT', 0.3))
 DESIRED_SKILLS_WEIGHT = float(os.getenv('DESIRED_SKILLS_WEIGHT', 0.2))
 BASE_SKILL_SCORE = float(os.getenv('BASE_SKILL_SCORE', 0.1))
 
-# Get model name from environment variable with default
-SENTENCE_TRANSFORMER_MODEL = os.getenv('SENTENCE_TRANSFORMER_MODEL', 'all-mpnet-base-v2')
+# Hugging Face Inference API configuration
+HF_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
+# Use BAAI/bge-small-en-v1.5 - works better with HF Inference API
+HF_MODEL = os.getenv('HUGGINGFACE_MODEL', 'BAAI/bge-small-en-v1.5')
+HF_API_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
 
-_model = None
+def get_embeddings(texts: List[str]) -> np.ndarray:
+    """
+    Get embeddings from Hugging Face Inference API.
+    
+    Args:
+        texts: List of texts to encode
+        
+    Returns:
+        numpy array of embeddings
+    """
+    if not HF_API_KEY:
+        raise ValueError("HUGGINGFACE_API_KEY environment variable is not set. Please set it in your .env file.")
 
-def get_model():
-    global _model
-    if _model is None:
-        from sentence_transformers import SentenceTransformer
-        _model = SentenceTransformer(SENTENCE_TRANSFORMER_MODEL)
-    return _model
+    # Normalize and validate input
+    if isinstance(texts, str):
+        texts = [texts]
+    if not texts or any(t is None or (isinstance(t, str) and t.strip() == "") for t in texts):
+        raise ValueError("Input text cannot be empty")
+
+    headers = {"Authorization": f"Bearer {HF_API_KEY}", "Content-Type": "application/json"}
+
+    # Always send a JSON dict payload as {"inputs": [..]} to the HF Inference endpoint
+    payload = {"inputs": texts}
+
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            response = client.post(HF_API_URL, headers=headers, json=payload)
+
+            # If the model is not available or payload invalid, HF will return a JSON error message
+            if response.status_code != 200:
+                # Log response body for debugging
+                try:
+                    body = response.json()
+                except Exception:
+                    body = response.text
+                print(f"HF API returned status {response.status_code}: {body}")
+
+            response.raise_for_status()
+            result = response.json()
+
+            # Convert HF response to numpy array
+            # HF returns a list of floats for single input, or list[list[float]] for batch
+            if isinstance(result, list) and len(result) > 0 and isinstance(result[0], (int, float)):
+                return np.array([result])
+            elif isinstance(result, list):
+                return np.array(result)
+            else:
+                # Unexpected format
+                raise RuntimeError(f"Unexpected HF response format: {type(result)} - {result}")
+
+    except httpx.HTTPError as e:
+        print(f"HF API request failed: {e}")
+        raise RuntimeError(f"Error calling Hugging Face API: {e}")
+
+def cosine_sim(emb1: np.ndarray, emb2: np.ndarray) -> float:
+    """
+    Calculate cosine similarity between two embeddings.
+    
+    Args:
+        emb1: First embedding (1D or 2D array)
+        emb2: Second embedding (1D or 2D array)
+        
+    Returns:
+        Cosine similarity score
+    """
+    # Ensure embeddings are 2D
+    if emb1.ndim == 1:
+        emb1 = emb1.reshape(1, -1)
+    if emb2.ndim == 1:
+        emb2 = emb2.reshape(1, -1)
+    
+    return cosine_similarity(emb1, emb2)[0][0]
 
 CITY_VARIATIONS = {
     'gurgaon': ['gurugram', 'gurgaon'],
@@ -96,18 +164,20 @@ def calculate_experience_years(experiences: List[Experience]) -> float:
             continue
     return round(max(0, total_days / 365), 1)
 
-def extract_required_experience(qualifications: Qualifications, model) -> float:
+def extract_required_experience(qualifications: Qualifications) -> float:
     if not qualifications or not qualifications.required:
         return 0.0
 
     required_sentences = qualifications.required
-    sentence_embeddings = model.encode(required_sentences, convert_to_tensor=True)
+    sentence_embeddings = get_embeddings(required_sentences)
 
     query = "How many years of experience are required?"
-    query_embedding = model.encode(query, convert_to_tensor=True)
-    similarities = util.cos_sim(query_embedding, sentence_embeddings)[0]
-
-    top_idx = int(similarities.argmax())
+    query_embedding = get_embeddings([query])[0]
+    
+    # Calculate similarities
+    similarities = [cosine_sim(query_embedding, sent_emb) for sent_emb in sentence_embeddings]
+    
+    top_idx = int(np.argmax(similarities))
     best_sentence = required_sentences[top_idx].lower()
 
     best_sentence = re.sub(r"[–—−]", "-", best_sentence)
@@ -132,11 +202,11 @@ def extract_required_experience(qualifications: Qualifications, model) -> float:
 
     return 0.0
 
-def calculate_role_relevance(jd_title: str, cv_suggested_role: str, cv_experiences: List[Experience], model) -> float:
+def calculate_role_relevance(jd_title: str, cv_suggested_role: str, cv_experiences: List[Experience]) -> float:
     if cv_suggested_role:
-        jd_emb = model.encode(jd_title.lower())
-        suggested_role_emb = model.encode(cv_suggested_role.lower())
-        role_similarity = cosine_similarity([jd_emb], [suggested_role_emb])[0][0]
+        jd_emb = get_embeddings([jd_title.lower()])[0]
+        suggested_role_emb = get_embeddings([cv_suggested_role.lower()])[0]
+        role_similarity = cosine_sim(jd_emb, suggested_role_emb)
         return max(0.3, role_similarity)
     
     if not cv_experiences:
@@ -148,10 +218,10 @@ def calculate_role_relevance(jd_title: str, cv_suggested_role: str, cv_experienc
     if not cv_titles_text.strip():
         return 0.5
     
-    jd_emb = model.encode(jd_title.lower())
-    cv_emb = model.encode(cv_titles_text)
+    jd_emb = get_embeddings([jd_title.lower()])[0]
+    cv_emb = get_embeddings([cv_titles_text])[0]
     
-    similarity = cosine_similarity([jd_emb], [cv_emb])[0][0]
+    similarity = cosine_sim(jd_emb, cv_emb)
     return max(0.3, similarity)
 
 def calculate_experience_match(cv_exp: float, jd_req: float, role_relevance: float) -> float:
@@ -272,14 +342,14 @@ def extract_field(text: str) -> str:
     
     return cleaned if cleaned else ""
 
-def calculate_field_similarity(cv_field: str, jd_text: str, model) -> float:
+def calculate_field_similarity(cv_field: str, jd_text: str) -> float:
     if not cv_field or not jd_text:
         return 0.0
-    cv_embed = model.encode([cv_field], convert_to_tensor=True)
-    jd_embed = model.encode([jd_text], convert_to_tensor=True)
-    return util.cos_sim(cv_embed, jd_embed).item()
+    cv_embed = get_embeddings([cv_field])[0]
+    jd_embed = get_embeddings([jd_text])[0]
+    return cosine_sim(cv_embed, jd_embed)
 
-def calculate_education_match(cv_education: list[Education], jd_education: list[str], model) -> float:
+def calculate_education_match(cv_education: list[Education], jd_education: list[str]) -> float:
     if not jd_education:
         return 1.0
     if not cv_education:
@@ -312,15 +382,21 @@ def calculate_education_match(cv_education: list[Education], jd_education: list[
 
     jd_texts = [req["text"] for req in jd_requirements]
     cv_texts = [entry["text"] for entry in cv_entries]
-    jd_embeddings = model.encode(jd_texts, convert_to_tensor=True)
-    cv_embeddings = model.encode(cv_texts, convert_to_tensor=True)
-    similarity_matrix = util.cos_sim(jd_embeddings, cv_embeddings)
+    
+    jd_embeddings = get_embeddings(jd_texts)
+    cv_embeddings = get_embeddings(cv_texts)
+    
+    # Calculate similarity matrix
+    similarity_matrix = np.zeros((len(jd_embeddings), len(cv_embeddings)))
+    for i in range(len(jd_embeddings)):
+        for j in range(len(cv_embeddings)):
+            similarity_matrix[i][j] = cosine_sim(jd_embeddings[i], cv_embeddings[j])
 
     requirement_scores = []
     for i, jd_req in enumerate(jd_requirements):
         best_match_score = 0
         for j, cv_entry in enumerate(cv_entries):
-            base_score = similarity_matrix[i][j].item()
+            base_score = float(similarity_matrix[i][j])
             level_bonus = 0
             if jd_req["level"] >= 0 and cv_entry["level"] > jd_req["level"]:
                 level_bonus = 0.25
@@ -329,7 +405,7 @@ def calculate_education_match(cv_education: list[Education], jd_education: list[
                 if jd_req["field"] == cv_entry["field"]:
                     field_bonus = 0.3
                 else:
-                    field_sim = calculate_field_similarity(cv_entry["field"], jd_req["field"], model)
+                    field_sim = calculate_field_similarity(cv_entry["field"], jd_req["field"])
                     field_bonus = 0.2 * field_sim
             total_score = min(1.0, base_score + level_bonus + field_bonus)
             if total_score > best_match_score:
@@ -366,7 +442,6 @@ def calculate_location_match(cv_location: LocationModel, jd_location: LocationMo
 
 def calculate_skills_match(jd_required_skills: List[str], cv_skills: List[Skill]) -> float:
     """Legacy function for backward compatibility - uses semantic similarity"""
-    model = get_model()
     if not jd_required_skills:
         return 0.7
     
@@ -378,9 +453,9 @@ def calculate_skills_match(jd_required_skills: List[str], cv_skills: List[Skill]
     jd_skills_text = " ".join(jd_required_skills)
     cv_skills_text = " ".join(cv_skill_names)
     
-    jd_skills_emb = model.encode(jd_skills_text)
-    cv_skills_emb = model.encode(cv_skills_text)
-    semantic_similarity = cosine_similarity([jd_skills_emb], [cv_skills_emb])[0][0]
+    jd_skills_emb = get_embeddings([jd_skills_text])[0]
+    cv_skills_emb = get_embeddings([cv_skills_text])[0]
+    semantic_similarity = cosine_sim(jd_skills_emb, cv_skills_emb)
     
     return max(0.3, min(1.0, semantic_similarity))
 
@@ -491,7 +566,7 @@ def calculate_match_status(skills_match: float, skills_details: Dict, skills_mat
     # Pending for all other cases (40% <= skills_match < 70%)
     return "Pending"
 
-def calculate_enhanced_sim_resp(jd_responsibilities: List[str], cv_experiences: List[Experience], model) -> float:
+def calculate_enhanced_sim_resp(jd_responsibilities: List[str], cv_experiences: List[Experience]) -> float:
     if not jd_responsibilities or not cv_experiences:
         return 0.0
 
@@ -503,8 +578,8 @@ def calculate_enhanced_sim_resp(jd_responsibilities: List[str], cv_experiences: 
     if not cv_descriptions:
         return 0.0
 
-    jd_embeddings = model.encode(jd_responsibilities)
-    cv_embeddings = model.encode(cv_descriptions)
+    jd_embeddings = get_embeddings(jd_responsibilities)
+    cv_embeddings = get_embeddings(cv_descriptions)
 
     similarity_matrix = cosine_similarity(jd_embeddings, cv_embeddings)
 
@@ -521,8 +596,8 @@ def calculate_enhanced_sim_resp(jd_responsibilities: List[str], cv_experiences: 
     final_score = 0.3 + (final_score * 0.7)
     return float(min(1.0, final_score))
 
-def calculate_combined_sim_resp(jd_responsibilities, cv_experiences, model):
-    semantic_score = calculate_enhanced_sim_resp(jd_responsibilities, cv_experiences, model)
+def calculate_combined_sim_resp(jd_responsibilities, cv_experiences):
+    semantic_score = calculate_enhanced_sim_resp(jd_responsibilities, cv_experiences)
     return min(1.0, semantic_score)
 
 def get_match_level(score: float) -> str:
@@ -567,25 +642,24 @@ def compute_similarity(jd: JDModel, cv: CVModel, skill_categories: Dict[str, Lis
     Returns:
         Tuple of (final_score, details_dict)
     """
-    model = get_model()
     suggested_role = cv.Analytics.suggested_role
     
-    role_relevance = calculate_role_relevance(jd.jobTitle, suggested_role, cv.experiences_list, model)
+    role_relevance = calculate_role_relevance(jd.jobTitle, suggested_role, cv.experiences_list)
     
-    jd_title_emb = model.encode(jd.jobTitle)
+    jd_title_emb = get_embeddings([jd.jobTitle])[0]
     
     cv_experience_years = calculate_experience_years(cv.experiences_list)
-    jd_required_years = extract_required_experience(jd.qualifications, model)
+    jd_required_years = extract_required_experience(jd.qualifications)
     
     cv_title_text = suggested_role if suggested_role else " ".join([exp.jobTitle for exp in cv.experiences_list if exp.jobTitle])
     
-    cv_title_emb = model.encode(cv_title_text if cv_title_text else "")
+    cv_title_emb = get_embeddings([cv_title_text])[0] if cv_title_text else np.zeros_like(jd_title_emb)
     
-    sim_title = cosine_similarity([jd_title_emb], [cv_title_emb])[0][0] if cv_title_text else 0.0
-    sim_resp = calculate_combined_sim_resp(jd.keyResponsibilities, cv.experiences_list, model)
+    sim_title = cosine_sim(jd_title_emb, cv_title_emb) if cv_title_text else 0.0
+    sim_resp = calculate_combined_sim_resp(jd.keyResponsibilities, cv.experiences_list)
     
     experience_match = calculate_experience_match(cv_experience_years, jd_required_years, role_relevance)
-    education_match = calculate_education_match(cv.education_list, jd.educationRequired, model)
+    education_match = calculate_education_match(cv.education_list, jd.educationRequired)
     location_match = calculate_location_match(cv.Personal_Data.location, jd.location)
     
     # Calculate skills match - use weighted if categories provided, otherwise legacy

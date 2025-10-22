@@ -40,29 +40,31 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
-            {/* Animated background elements */}
-            <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
-            </div>
-
-            <div className="relative w-full max-w-md px-6">
-                <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 space-y-8 border border-white/20">
-                    {/* Logo and Title */}
-                    <div className="text-center space-y-2">
-                        <div className="flex justify-center mb-4">
-                            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-300">
-                                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                </svg>
+        <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+            {/* Left Side - Login Form */}
+            <div className="flex-1 flex items-center justify-center p-8 lg:p-12">
+                <div className="w-full max-w-md space-y-8">
+                    {/* Logo and Brand */}
+                    <div className="text-left space-y-4">
+                        <div className="inline-flex items-center space-x-2 group">
+                            <div className="relative">
+                                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 via-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-all duration-300">
+                                    <span className="text-white font-bold text-2xl" style={{ fontFamily: 'Georgia, serif' }}>J</span>
+                                </div>
+                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-xl blur-lg opacity-40 group-hover:opacity-60 transition-opacity duration-300 -z-10"></div>
                             </div>
+                            <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent tracking-wide" style={{ fontFamily: 'Georgia, serif' }}>
+                                Joblyt
+                            </h2>
                         </div>
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                            Welcome Back
-                        </h1>
-                        <p className="text-gray-600 text-sm">Sign in to your account to continue</p>
+                        <div className="space-y-2">
+                            <h1 className="text-3xl font-bold text-gray-900">
+                                Welcome back
+                            </h1>
+                            <p className="text-gray-600">
+                                Sign in to continue to your dashboard
+                            </p>
+                        </div>
                     </div>
 
                     <form className="space-y-6" onSubmit={handleLogin}>
@@ -86,7 +88,7 @@ const LoginPage = () => {
                                     type="text"
                                     required
                                     placeholder="Enter your username"
-                                    className="block w-full pl-10 pr-3 py-3 text-gray-900 placeholder-gray-400 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-gray-300"
+                                    className="block w-full pl-10 pr-4 py-3 text-gray-900 placeholder-gray-400 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                 />
@@ -113,7 +115,7 @@ const LoginPage = () => {
                                     type="password"
                                     required
                                     placeholder="Enter your password"
-                                    className="block w-full pl-10 pr-3 py-3 text-gray-900 placeholder-gray-400 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-gray-300"
+                                    className="block w-full pl-10 pr-4 py-3 text-gray-900 placeholder-gray-400 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                 />
@@ -160,7 +162,7 @@ const LoginPage = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="relative w-full px-4 py-3 text-base font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none overflow-hidden group"
+                            className="relative w-full px-4 py-3.5 text-base font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none overflow-hidden group"
                         >
                             <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-purple-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
                             <span className="relative flex items-center justify-center">
@@ -183,13 +185,99 @@ const LoginPage = () => {
                             </span>
                         </button>
                     </form>
+
+                    {/* Footer */}
+                    <div className="text-center pt-4">
+                        <p className="text-sm text-gray-500">
+                            Powered by <span className="font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Joblyt AI</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Right Side - Image & Info */}
+            <div className="hidden lg:flex flex-1 bg-gradient-to-br from-indigo-600 via-purple-600 to-purple-700 relative overflow-hidden">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-10">
+                    <div className="absolute inset-0" style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                    }}></div>
                 </div>
 
-                {/* Footer */}
-                <div className="text-center mt-6">
-                    <p className="text-sm text-gray-600">
-                        Secure login powered by <span className="font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Joblyt</span>
-                    </p>
+                {/* Floating Elements */}
+                <div className="absolute top-20 right-20 w-32 h-32 bg-white/10 rounded-full blur-3xl animate-blob"></div>
+                <div className="absolute bottom-20 left-20 w-40 h-40 bg-purple-300/20 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+
+                {/* Content */}
+                <div className="relative z-10 flex flex-col items-center justify-center w-full px-12 text-white">
+                    <div className="max-w-lg space-y-8">
+                        {/* Icon/Illustration */}
+                        <div className="flex justify-center">
+                            <div className="relative">
+                                <div className="w-32 h-32 bg-white/20 backdrop-blur-lg rounded-3xl flex items-center justify-center shadow-2xl">
+                                    <svg className="w-20 h-20 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </div>
+                                <div className="absolute inset-0 bg-white/30 rounded-3xl blur-2xl"></div>
+                            </div>
+                        </div>
+
+                        {/* Heading */}
+                        <div className="text-center space-y-4">
+                            <h2 className="text-4xl font-bold leading-tight">
+                                AI-Powered CV Matching Made Simple
+                            </h2>
+                            <p className="text-lg text-purple-100 leading-relaxed">
+                                Transform your recruitment process with intelligent resume analysis and job matching
+                            </p>
+                        </div>
+
+                        {/* Features */}
+                        <div className="space-y-4 pt-4">
+                            <div className="flex items-center space-x-3 bg-white/10 backdrop-blur-sm rounded-xl p-4 transform hover:scale-105 transition-transform duration-200">
+                                <div className="flex-shrink-0">
+                                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold">Smart Matching</h3>
+                                    <p className="text-sm text-purple-100">AI-driven candidate-job matching</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center space-x-3 bg-white/10 backdrop-blur-sm rounded-xl p-4 transform hover:scale-105 transition-transform duration-200">
+                                <div className="flex-shrink-0">
+                                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold">Detailed Analytics</h3>
+                                    <p className="text-sm text-purple-100">Comprehensive skill & experience analysis</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center space-x-3 bg-white/10 backdrop-blur-sm rounded-xl p-4 transform hover:scale-105 transition-transform duration-200">
+                                <div className="flex-shrink-0">
+                                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold">Save Time</h3>
+                                    <p className="text-sm text-purple-100">Automate resume screening instantly</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
