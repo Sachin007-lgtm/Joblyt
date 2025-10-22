@@ -65,6 +65,19 @@ const LoginPage = () => {
                                 Sign in to continue to your dashboard
                             </p>
                         </div>
+                        
+                        {/* Demo Credentials */}
+                        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 space-y-1">
+                            <p className="text-sm font-semibold text-indigo-900">
+                                Demo Credentials:
+                            </p>
+                            <p className="text-sm text-indigo-700">
+                                <span className="font-medium">Username:</span> admin@cvautomation.com
+                            </p>
+                            <p className="text-sm text-indigo-700">
+                                <span className="font-medium">Password:</span> password123
+                            </p>
+                        </div>
                     </div>
 
                     <form className="space-y-6" onSubmit={handleLogin}>
