@@ -173,10 +173,24 @@ def create_user(supabase: Client, user: schemas.UserCreate):
 def delete_user(supabase: Client, user_id: str):
     """Delete user from Supabase Auth"""
     try:
-        response = supabase.auth.admin.delete_user(user_id)
-        return response
+        # Get user info before deleting
+        user = get_user(supabase, user_id)
+        if not user:
+            logger.error(f"User with ID {user_id} not found")
+            return None
+        
+        logger.info(f"Attempting to delete user: {user.email} (ID: {user_id})")
+        
+        # Delete the user
+        supabase.auth.admin.delete_user(user_id)
+        
+        logger.info(f"Successfully deleted user: {user.email}")
+        # Return the user info that was deleted
+        return user
     except Exception as e:
-        logger.error(f"Error deleting user: {e}")
+        logger.error(f"Error deleting user {user_id}: {e}", exc_info=True)
+        # Re-raise to let the endpoint handle it
+        raise
     return None
 
 # JobDescription CRUD operations

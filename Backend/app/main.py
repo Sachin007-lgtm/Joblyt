@@ -175,10 +175,25 @@ def read_user(user_id: str, supabase = Depends(get_supabase), current_user: sche
 
 @app.delete("/users/{user_id}", response_model=schemas.User)
 def delete_user(user_id: str, supabase = Depends(get_supabase), current_user: schemas.User = Depends(auth.get_current_admin_user)):
-    db_user = crud.delete_user(supabase, user_id=user_id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
+    try:
+        db_user = crud.delete_user(supabase, user_id=user_id)
+        if db_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        return db_user
+    except Exception as e:
+        error_msg = str(e)
+        logging.error(f"Failed to delete user {user_id}: {error_msg}")
+        
+        # Check if it's a database constraint error
+        if "500" in error_msg or "Database error" in error_msg or "Internal Server Error" in error_msg:
+            raise HTTPException(
+                status_code=409,
+                detail="Cannot delete user: This user has associated data in the system (candidates, analyses, etc.). "
+                       "Please delete or reassign their data first, or contact your database administrator."
+            )
+        
+        # Re-raise other errors
+        raise HTTPException(status_code=500, detail=f"Error deleting user: {error_msg}")
 
 @app.post("/extract_jd", response_model=schemas.JDModel)
 async def extract_jd(

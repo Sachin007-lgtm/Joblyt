@@ -690,6 +690,9 @@ def compute_similarity(jd: JDModel, cv: CVModel, skill_categories: Dict[str, Lis
         LOCATION_WEIGHT * location_match
     )
     
+    # Ensure final score never exceeds 1.0 (100%)
+    final_score = min(1.0, max(0.0, final_score))
+    
     # Calculate match status based on skills
     status = calculate_match_status(skills_match, skills_details, skills_match_type)
     
