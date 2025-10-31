@@ -28,13 +28,49 @@ def extract_text_from_file(file_path):
             doc = Document(file_path)
             return "\n".join([para.text for para in doc.paragraphs])
         elif ext == ".pdf":
-            import PyPDF2
+            # Try PyPDF2 first
             text = ""
-            with open(file_path, "rb") as f:
-                reader = PyPDF2.PdfReader(f)
-                for page in reader.pages:
-                    text += page.extract_text() or ""
-            return text
+            try:
+                import PyPDF2
+                with open(file_path, "rb") as f:
+                    reader = PyPDF2.PdfReader(f)
+                    for page in reader.pages:
+                        extracted = page.extract_text()
+                        if extracted:
+                            text += extracted
+                
+                # Check if we got meaningful text (more than just whitespace)
+                if text and len(text.strip()) > 50:
+                    logger.info(f"Successfully extracted text from {file_path} using PyPDF2")
+                    return text
+                else:
+                    logger.warning(f"PyPDF2 extracted insufficient text ({len(text.strip())} chars), trying PyMuPDF fallback")
+                    raise Exception("Insufficient text from PyPDF2")
+                    
+            except Exception as e:
+                logger.warning(f"PyPDF2 failed for {file_path}: {e}, trying PyMuPDF fallback")
+                
+                # Fallback to PyMuPDF (fitz)
+                try:
+                    import fitz  # PyMuPDF
+                    text = ""
+                    with fitz.open(file_path) as doc:
+                        for page in doc:
+                            text += page.get_text()
+                    
+                    if text and len(text.strip()) > 10:
+                        logger.info(f"Successfully extracted text from {file_path} using PyMuPDF (fallback)")
+                        return text
+                    else:
+                        logger.error(f"Both PyPDF2 and PyMuPDF failed to extract meaningful text from {file_path}")
+                        return text if text else ""
+                        
+                except ImportError:
+                    logger.error("PyMuPDF (fitz) not installed. Install with: pip install PyMuPDF")
+                    return text if text else ""
+                except Exception as fitz_error:
+                    logger.error(f"PyMuPDF also failed for {file_path}: {fitz_error}")
+                    return text if text else ""
         else:
             logger.warning(f"Unsupported file type: {ext} for file {file_path}")
             return None

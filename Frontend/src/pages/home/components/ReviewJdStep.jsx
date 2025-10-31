@@ -21,6 +21,18 @@ const ReviewJdStep = ({
 }) => {
   const hasCvFiles = user?.role !== 'recruiter'; // Simplified logic, adjust as needed
 
+  // Calculate total weight
+  const calculateTotalWeight = (weights) => {
+    const critical = weights?.critical || 0;
+    const important = weights?.important || 0;
+    const desired = weights?.desired || 0;
+    const base = weights?.base || 0;
+    return critical + important + desired + base;
+  };
+
+  const totalWeight = calculateTotalWeight(editedJdJson?.skillWeights);
+  const isWeightValid = totalWeight <= 1.0;
+
   return (
   <div className="space-y-8">
     <div className="text-center mb-8">
@@ -90,11 +102,26 @@ const ReviewJdStep = ({
           <SlidersHorizontal className="w-4 h-4" />
           Skill Weights & Rejection Rules (optional)
         </div>
+        {/* Weight Validation Warning */}
+        {totalWeight > 0 && (
+          <div className={`text-sm p-2 rounded ${
+            isWeightValid 
+              ? 'bg-green-50 text-green-700 border border-green-200' 
+              : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+            Total Weight: {totalWeight.toFixed(2)} / 1.00
+            {!isWeightValid && (
+              <span className="font-semibold ml-2">⚠️ Total exceeds 1.0! Please adjust.</span>
+            )}
+          </div>
+        )}
         <div className="grid md:grid-cols-2 gap-4">
           <div className="grid grid-cols-2 gap-2 items-center">
             <label className="text-sm text-gray-700">Critical Weight</label>
             <input type="number" step="0.01" min="0" max="1"
-                   className="border rounded px-2 py-1 text-sm"
+                   className={`border rounded px-2 py-1 text-sm ${
+                     !isWeightValid ? 'border-red-300 bg-red-50' : ''
+                   }`}
                    value={(editedJdJson?.skillWeights?.critical ?? '')}
                    onChange={e => setEditedJdJson(prev => ({
                      ...prev,
@@ -103,7 +130,9 @@ const ReviewJdStep = ({
                    placeholder="Default 0.4" />
             <label className="text-sm text-gray-700">Important Weight</label>
             <input type="number" step="0.01" min="0" max="1"
-                   className="border rounded px-2 py-1 text-sm"
+                   className={`border rounded px-2 py-1 text-sm ${
+                     !isWeightValid ? 'border-red-300 bg-red-50' : ''
+                   }`}
                    value={(editedJdJson?.skillWeights?.important ?? '')}
                    onChange={e => setEditedJdJson(prev => ({
                      ...prev,
@@ -112,7 +141,9 @@ const ReviewJdStep = ({
                    placeholder="Default 0.3" />
             <label className="text-sm text-gray-700">Desired Weight</label>
             <input type="number" step="0.01" min="0" max="1"
-                   className="border rounded px-2 py-1 text-sm"
+                   className={`border rounded px-2 py-1 text-sm ${
+                     !isWeightValid ? 'border-red-300 bg-red-50' : ''
+                   }`}
                    value={(editedJdJson?.skillWeights?.desired ?? '')}
                    onChange={e => setEditedJdJson(prev => ({
                      ...prev,
@@ -121,7 +152,9 @@ const ReviewJdStep = ({
                    placeholder="Default 0.2" />
             <label className="text-sm text-gray-700">Base Skill Score</label>
             <input type="number" step="0.01" min="0" max="1"
-                   className="border rounded px-2 py-1 text-sm"
+                   className={`border rounded px-2 py-1 text-sm ${
+                     !isWeightValid ? 'border-red-300 bg-red-50' : ''
+                   }`}
                    value={(editedJdJson?.skillWeights?.base ?? '')}
                    onChange={e => setEditedJdJson(prev => ({
                      ...prev,
@@ -182,8 +215,9 @@ const ReviewJdStep = ({
     <div className="text-center flex gap-4 justify-center">
       <button
         onClick={extractResumes}
-        disabled={processing || !hasCvFiles}
+        disabled={processing || !hasCvFiles || !isWeightValid}
         className="px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+        title={!isWeightValid ? "Total weight must be ≤ 1.0" : ""}
       >
         <FileText className="w-5 h-5 inline mr-2" />
         Extract Resumes
@@ -191,8 +225,9 @@ const ReviewJdStep = ({
       {(user?.role === 'admin' || user?.role === 'backend_team') && (
         <button
           onClick={saveJd}
-          disabled={processing}
-          className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+          disabled={processing || !isWeightValid}
+          className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          title={!isWeightValid ? "Total weight must be ≤ 1.0" : ""}
         >
           Save JD
         </button>

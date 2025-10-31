@@ -2,6 +2,7 @@ import json
 import hashlib
 import logging
 import os
+import httpx
 from typing import Optional, List, Dict, Any
 from supabase import Client
 from supabase import create_client
@@ -71,7 +72,33 @@ def get_user(supabase: Client, user_id: str):
                 created_at=user_data.created_at
             )
     except Exception as e:
-        logger.error(f"Error getting user by ID: {e}")
+        logger.error(f"Error getting user by ID via SDK: {e}")
+        # Fallback: try direct HTTP admin API using service role key
+        try:
+            supabase_url = os.getenv("SUPABASE_URL")
+            supabase_key = os.getenv("SUPABASE_KEY")
+            if supabase_url and supabase_key:
+                headers = {
+                    "apikey": supabase_key,
+                    "Authorization": f"Bearer {supabase_key}",
+                    "Content-Type": "application/json"
+                }
+                resp = httpx.get(f"{supabase_url}/auth/v1/admin/users/{user_id}", headers=headers, timeout=10.0)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    user_data = data.get('user', data)
+                    return schemas.User(
+                        id=user_data.get('id'),
+                        username=(user_data.get('user_metadata') or {}).get('username', (user_data.get('email') or '').split('@')[0]),
+                        email=user_data.get('email'),
+                        role=(user_data.get('user_metadata') or {}).get('role', 'recruiter'),
+                        is_active=True,
+                        created_at=user_data.get('created_at')
+                    )
+                else:
+                    logger.error(f"HTTP fallback get_user failed: {resp.status_code} {resp.text}")
+        except Exception as e2:
+            logger.error(f"HTTP fallback error getting user by ID: {e2}")
     return None
 
 def get_user_by_email(supabase: Client, email: str):
@@ -152,28 +179,84 @@ def get_users(supabase: Client, skip: int = 0, limit: int = 100, username: str =
 
 def create_user(supabase: Client, user: schemas.UserCreate):
     """Create user in Supabase Auth"""
+    # Try admin creation via SDK first (requires service role key)
     try:
-        response = supabase.auth.sign_up({
+        # If SDK exposes admin.create_user use it
+        if hasattr(supabase.auth, 'admin') and hasattr(supabase.auth.admin, 'create_user'):
+            try:
+                resp = supabase.auth.admin.create_user({
+                    "email": user.email,
+                    "password": user.password,
+                    "email_confirm": True,
+                    "user_metadata": {
+                        "username": user.username,
+                        "role": user.role
+                    }
+                })
+                # SDK may return object with .user or dict
+                new_user = getattr(resp, 'user', None) or (resp.get('user') if isinstance(resp, dict) else None)
+                if new_user:
+                    return schemas.User(
+                        id=new_user.id,
+                        username=(new_user.user_metadata or {}).get('username', new_user.email.split('@')[0]),
+                        email=new_user.email,
+                        role=(new_user.user_metadata or {}).get('role', user.role),
+                        is_active=True,
+                        created_at=new_user.created_at
+                    )
+            except Exception as sdk_e:
+                logger.warning(f"SDK admin.create_user failed: {sdk_e}")
+
+        # Fallback to direct HTTP admin API using service role key
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_KEY")
+        if not supabase_url or not supabase_key:
+            logger.error("SUPABASE_URL or SUPABASE_KEY not set for HTTP fallback")
+            return None
+
+        headers = {
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
             "email": user.email,
-            "password": user.password
-        })
-        if response.user:
-            user_data = response.user
-            return schemas.User(
-                id=user_data.id,
-                username=user.username,
-                email=user_data.email,
-                role=user.role,
-                is_active=True
-            )
+            "password": user.password,
+            "email_confirm": True,
+            "user_metadata": {
+                "username": user.username,
+                "role": user.role
+            }
+        }
+
+        try:
+            r = httpx.post(f"{supabase_url}/auth/v1/admin/users", headers=headers, json=payload, timeout=10.0)
+            if r.status_code in (200, 201):
+                data = r.json()
+                user_data = data.get('user', data)
+                return schemas.User(
+                    id=user_data.get('id'),
+                    username=(user_data.get('user_metadata') or {}).get('username', (user_data.get('email') or '').split('@')[0]),
+                    email=user_data.get('email'),
+                    role=(user_data.get('user_metadata') or {}).get('role', user.role),
+                    is_active=True,
+                    created_at=user_data.get('created_at')
+                )
+            else:
+                logger.error(f"HTTP admin create user failed: {r.status_code} {r.text}")
+        except httpx.HTTPError as he:
+            logger.error(f"HTTP error creating user: {he}")
+
     except Exception as e:
-        logger.error(f"Error creating user: {e}")
+        logger.error(f"Unexpected error creating user: {e}")
     return None
 
 def delete_user(supabase: Client, user_id: str):
-    """Delete user from Supabase Auth"""
+    """Delete user from Supabase Auth using direct HTTP API"""
+    import httpx
     try:
-        # Get user info before deleting
+        # Get user info before deleting (for return value)
         user = get_user(supabase, user_id)
         if not user:
             logger.error(f"User with ID {user_id} not found")
@@ -181,17 +264,36 @@ def delete_user(supabase: Client, user_id: str):
         
         logger.info(f"Attempting to delete user: {user.email} (ID: {user_id})")
         
-        # Delete the user
-        supabase.auth.admin.delete_user(user_id)
+        # Use direct HTTP API to delete user
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_KEY")
         
-        logger.info(f"Successfully deleted user: {user.email}")
-        # Return the user info that was deleted
-        return user
+        headers = {
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}",
+            "Content-Type": "application/json"
+        }
+        
+        response = httpx.delete(
+            f"{supabase_url}/auth/v1/admin/users/{user_id}",
+            headers=headers,
+            timeout=10.0
+        )
+        
+        if response.status_code in [200, 204]:
+            logger.info(f"Successfully deleted user: {user.email}")
+            return user
+        else:
+            error_detail = response.json() if response.text else {}
+            logger.error(f"Failed to delete user. Status: {response.status_code}, Response: {error_detail}")
+            raise Exception(f"Delete failed: {error_detail.get('message', 'Unknown error')}")
+            
+    except httpx.HTTPError as e:
+        logger.error(f"HTTP error deleting user {user_id}: {e}", exc_info=True)
+        raise
     except Exception as e:
         logger.error(f"Error deleting user {user_id}: {e}", exc_info=True)
-        # Re-raise to let the endpoint handle it
         raise
-    return None
 
 # JobDescription CRUD operations
 def get_jd(supabase: Client, jd_id: int):
@@ -263,14 +365,18 @@ def get_or_create_job_description(supabase: Client, jd: schemas.JDModel):
         response = supabase.table("job_descriptions").insert(insert_data).execute()
         if response.data:
             return _convert_to_schema(response.data[0])
+        else:
+            logger.error(f"Insert returned no data for JD")
+            return None
     except Exception as e:
         logger.error(f"Error getting or creating job description: {e}")
-    return None
+        # Re-raise the exception so the endpoint can handle it properly
+        raise
 
 def get_jds(supabase: Client, skip: int = 0, limit: int = 100):
-    """Get job descriptions from Supabase"""
+    """Get job descriptions from Supabase, sorted by creation date (latest first)"""
     try:
-        response = supabase.table("job_descriptions").select("*").range(skip, skip + limit - 1).execute()
+        response = supabase.table("job_descriptions").select("*").order("created_at", desc=True).range(skip, skip + limit - 1).execute()
         if response.data:
             return [_convert_to_schema(item) for item in response.data]
     except Exception as e:
@@ -313,13 +419,13 @@ def update_jd_details(supabase: Client, jd_id: int, jd_update: schemas.JobDescri
     return None
 
 def get_jd_results(supabase: Client, jd_id: int):
-    """Get job description results from Supabase"""
+    """Get job description results from Supabase, sorted by creation date (latest first)"""
     try:
         response = supabase.table("analysis_results").select("""
             *,
             job_description:job_descriptions(*),
             candidate:candidates(*)
-        """).eq("job_description_id", jd_id).execute()
+        """).eq("job_description_id", jd_id).order("created_at", desc=True).execute()
         if response.data:
             results = []
             for item in response.data:
@@ -341,13 +447,13 @@ def get_jd_results(supabase: Client, jd_id: int):
     return []
 
 def get_user_analyses(supabase: Client, user_id: str):
-    """Get user analyses from Supabase"""
+    """Get user analyses from Supabase, sorted by creation date (latest first)"""
     try:
         response = supabase.table("analysis_results").select("""
             *,
             job_description:job_descriptions(*),
             candidate:candidates(*)
-        """).eq("user_id", user_id).execute()
+        """).eq("user_id", user_id).order("created_at", desc=True).execute()
         if response.data:
             results = []
             for item in response.data:

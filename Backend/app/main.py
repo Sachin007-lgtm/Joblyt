@@ -74,6 +74,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Root endpoint
+@app.get("/")
+async def root():
+    """Root endpoint to verify API is running"""
+    return {
+        "message": "CV Automation API",
+        "status": "running",
+        "version": "1.0.0",
+        "docs": "/docs"
+    }
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for monitoring"""
+    return {
+        "status": "healthy",
+        "service": "cv-automation-api"
+    }
+
 # Token endpoint for Supabase authentication
 @app.post("/token", response_model=schemas.Token)
 async def login_for_access_token(
@@ -125,40 +145,61 @@ def create_user(user: schemas.UserCreate, supabase = Depends(get_supabase), curr
         supabase_key = os.environ.get("SUPABASE_KEY", "NOT SET")
         logging.info(f"Using Supabase URL: {supabase_url}, Key length: {len(supabase_key) if supabase_key != 'NOT SET' else 'N/A'}")
         
-        # Create the user in Supabase Auth
-        response = supabase.auth.admin.create_user({
+        # Try direct HTTP API call as workaround for admin API restrictions
+        import httpx
+        headers = {
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
             "email": user.email,
             "password": user.password,
-            "email_confirm": True,  # Set to False if you don't want email confirmation
+            "email_confirm": True,
             "user_metadata": {
                 "username": user.username,
                 "role": user.role
             }
-        })
+        }
         
-        new_user = response.user
-        if new_user:
-            logging.info(f"Successfully created user: {new_user.email}")
+        # Use direct HTTP request to admin endpoint
+        response = httpx.post(
+            f"{supabase_url}/auth/v1/admin/users",
+            headers=headers,
+            json=payload,
+            timeout=10.0
+        )
+        
+        if response.status_code in [200, 201]:
+            response_data = response.json()
+            new_user_data = response_data if isinstance(response_data, dict) else response_data.get('user', {})
+            
+            logging.info(f"Successfully created user: {user.email}")
             return schemas.User(
-                id=new_user.id,
-                username=new_user.user_metadata.get("username", new_user.email),
-                email=new_user.email,
-                role=new_user.user_metadata.get("role", "recruiter"),
+                id=new_user_data.get('id'),
+                username=new_user_data.get('user_metadata', {}).get('username', user.email.split('@')[0]),
+                email=new_user_data.get('email', user.email),
+                role=new_user_data.get('user_metadata', {}).get('role', user.role),
                 is_active=True,
-                created_at=new_user.created_at
+                created_at=new_user_data.get('created_at')
             )
         else:
-            logging.error("Could not create user: response.user is None")
-            raise HTTPException(status_code=400, detail="Could not create user")
+            error_detail = response.json() if response.text else {}
+            logging.error(f"Failed to create user. Status: {response.status_code}, Response: {error_detail}")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Error creating user: {error_detail.get('message', 'Unknown error')}"
+            )
+            
+    except httpx.HTTPError as e:
+        logging.error(f"HTTP error creating user: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=f"Network error creating user: {str(e)}")
     except Exception as e:
         logging.error(f"Error creating user in Supabase: {e}", exc_info=True)
-        # Provide more specific error information
         error_msg = str(e)
         if "403" in error_msg or "Forbidden" in error_msg or "User not allowed" in error_msg:
-            error_msg += " - This indicates the service role key may not have proper permissions. Please verify:" \
-                        " 1) SUPABASE_KEY in .env is a service role key (not an anon/public key)" \
-                        " 2) The service role key has admin privileges in your Supabase project" \
-                        " 3) Your Supabase project settings allow admin user creation"
+            error_msg += " - Please check Supabase dashboard: Authentication → Settings → Enable Signups must be ON"
         raise HTTPException(status_code=400, detail=f"Error creating user: {error_msg}")
 
 @app.get("/users/", response_model=List[schemas.User])
@@ -261,6 +302,12 @@ async def save_jd(
         )
     
     db_jd = crud.get_or_create_job_description(supabase=supabase, jd=jd_obj)
+    
+    if db_jd is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to save job description. This may be due to database permissions (RLS policy). Check server logs for details."
+        )
     
     return db_jd
 
