@@ -34,7 +34,7 @@ BASE_SKILL_SCORE = float(os.getenv('BASE_SKILL_SCORE', 0.1))
 HF_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
 # Use BAAI/bge-small-en-v1.5 - works better with HF Inference API
 HF_MODEL = os.getenv('HUGGINGFACE_MODEL', 'BAAI/bge-small-en-v1.5')
-HF_API_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
+HF_API_URL = f"https://router.huggingface.co/hf-inference/models/{HF_MODEL}"
 
 def get_embeddings(texts: List[str]) -> np.ndarray:
     """
